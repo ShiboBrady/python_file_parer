@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.6
 #-*-coding:UTF-8-*-
 import xlrd
 import traceback
@@ -56,8 +57,8 @@ class ExcelConvent():
             data = xlrd.open_workbook(filename)
             table = data.sheet_by_name(tablename)
             return table
-        except Exception,e:
-            print str(e)
+        except Exception as e:
+            traceback.print_exc()
             raise e
 
     def Convent(self, table, beginLine):
@@ -67,7 +68,7 @@ class ExcelConvent():
         #voiceExplainHistory = ''
         voiceListHistory = []
         result = {}
-        for line in xrange(nrows):
+        for line in range(nrows):
             if line <= beginLine:
                 continue
             #if line > 40:
@@ -87,7 +88,7 @@ class ExcelConvent():
                 alphaList = list(pinyin)
                 key = ''.join([alpha if alpha not in self.alphaMapping else self.alphaMapping[alpha] for alpha in alphaList])
 
-            if imageFile == "" or imageFile == None:
+            if imageFile == 0 or imageFile == '0' or imageFile == None or imageFile == "":
                 if voiceExplain == "" or voiceExplain == None: 
                     #voiceExplain = voiceExplainHistory
                     voiceList = voiceListHistory[:]
@@ -105,8 +106,8 @@ class ExcelConvent():
                 voiceList = voiceExplain.split()
                 voiceListHistory = voiceList[:]
 
-            if "" == imageFile:
-                imageFile = u"空白.png"
+            if "" == imageFile or "0" == imageFile or 0 == imageFile:
+                imageFile = "kongbai.png"
 
             self.InsertIntoMap(result, key, pinyin, voiceFile, imageFile)
         return result
@@ -123,7 +124,7 @@ class ExcelConvent():
         result[key][tone].append(newMap)
 
     def FindPinYinTone(self, pinyin):
-        print pinyin
+        print (pinyin)
         if pinyin not in self.alphaMapping:
             alphaList = list(pinyin)
             for alpha in alphaList:
@@ -135,12 +136,11 @@ class ExcelConvent():
 if __name__ == '__main__':
     try:
         excelConvent = ExcelConvent()
-        table = excelConvent.OpenExcel(u'拼音录音文档-2016.6.30.xlsx', u'拼音表')
+        table = excelConvent.OpenExcel(u'改好拼音.xlsx', u'工作表1')
         result = excelConvent.Convent(table, 1)  
         result_str = json.dumps(result, ensure_ascii=False)
-        print result_str
-        #with open('result.json', 'w') as f:
-        #        f.write(result_str)
-    except Exception, e:
-        print e
-        print traceback.print_exc()
+        #print result_str
+        with open('pinyin.json', 'w', encoding = 'utf-8') as f:
+                f.write(result_str)
+    except Exception as e:
+        traceback.print_exc()

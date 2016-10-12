@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.6
 #-*-coding:UTF-8-*-
 import xlrd
 import traceback
@@ -56,15 +57,15 @@ class ExcelConvent():
             data = xlrd.open_workbook(filename)
             table = data.sheet_by_name(tablename)
             return table
-        except Exception,e:
-            print str(e)
+        except Exception as e:
+            traceback.print_exc()
             raise e
 
     def Convent(self, table, beginLine):
         nrows = table.nrows
         beginLine = beginLine - 1;
         result = {}
-        for line in xrange(nrows):
+        for line in range(nrows):
             if line <= beginLine:
                 continue
             voiceFile, pinyin = table.row_values(line)[:2]
@@ -81,7 +82,8 @@ if __name__ == '__main__':
         table = excelConvent.OpenExcel(u'拼音录音文档-2016.6.30.xlsx', u'字母表')
         result = excelConvent.Convent(table, 1)  
         result_str = json.dumps(result, ensure_ascii=False)
-        print result_str
-    except Exception, e:
-        print e
-        print traceback.print_exc()
+        with open('./zimu.json', 'w', encoding ='utf-8') as file:
+            file.write(result_str)
+        #print result_str
+    except Exception as e:
+        traceback.print_exc()

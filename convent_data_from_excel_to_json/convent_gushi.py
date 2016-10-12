@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.6
 #-*-coding:UTF-8-*-
 import xlrd
 import traceback
@@ -77,15 +78,15 @@ class ExcelConvent():
             data = xlrd.open_workbook(filename)
             table = data.sheet_by_name(tablename)
             return table
-        except Exception,e:
-            print str(e)
+        except Exception as e:
+            traceback.print_exc()
             raise e
 
     def Convent(self, table, beginLine):
         nrows = table.nrows
         beginLine = beginLine - 1;
         result = {}
-        for lines in xrange(nrows):
+        for lines in range(nrows):
             if lines <= beginLine:
                 continue
             #if line > 40:
@@ -116,12 +117,12 @@ class ExcelConvent():
 
     def ParseLine(self, line, result):
         voiceFile, pinyin = line[:2]
-        print voiceFile, pinyin
+        print (voiceFile, pinyin)
         voiceFile = voiceFile.strip()
         pinyin = pinyin.strip()
         YunMuKey = voiceFile[:4]
         if YunMuKey not in self.FileToYunMuMapping:
-            print 'YunMukey ', YunMukey, ' Doesn\'t in FileToYunMuMapping.'
+            print ('YunMukey ', YunMukey, ' Doesn\'t in FileToYunMuMapping.')
             return
         YunMu = self.FileToYunMuMapping[YunMuKey]
         voiceFile = voiceFile + '.mp3'
@@ -143,7 +144,7 @@ if __name__ == '__main__':
         table = excelConvent.OpenExcel(u'拼音录音文档-2016.6.30.xlsx', u'故事表')
         result = excelConvent.Convent(table, 19)  
         result_str = json.dumps(result, ensure_ascii=False)
-        print result_str
-    except Exception, e:
-        print e
-        print traceback.print_exc()
+        with open('gushi.json', 'w', encoding = 'utf-8') as f:
+            f.write(result_str)
+    except Exception as e:
+        traceback.print_exc()
