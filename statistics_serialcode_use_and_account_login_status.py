@@ -3,7 +3,7 @@ import MySQLdb
 import json
 import traceback
 import smtplib  
-from email.mime.text import MIMEText  
+from email.mime.text import MIMEText
 
 serialCodeMaxUseTimes = 2 #一个序列号所允许得最大设备个数
 accountIdMaxLoginTimes = 10 #一个账号所允许登陆的最大设备个数
@@ -402,7 +402,7 @@ class AccountInfo():
 
 if __name__ == "__main__":
     mysql_conf = dict(
-        host='127.0.0.1', 
+        host='120.25.76.162', 
         port = 3306, 
         user='root', 
         passwd='123456',

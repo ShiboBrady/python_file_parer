@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>万趣学拼音-宝贝学习进度</title>
+    <script type="text/javascript" src="http://cdn.bootcss.com/jquery/3.1.0/jquery.min.js"></script>
+    <script type="text/javascript" src="http://cdn.bootcss.com/layer/2.4/layer.js"></script>
+    <script type="text/javascript" src="http://upload.wanquwoo.com:8989/pinyinshared/content_zoom.js"></script>
+    <script type="text/javascript">
+        var list1 = new Array("a", "o", "e", "i", "u", "ü");
+        var list2_1 = new Array("b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j");
+        var list2_2 = new Array("q", "x", "zh", "ch", "sh", "r", "z", "c", "s", "y", "w");
+        var list3_1 = new Array("ai", "ei", "ui", "ao", "ou", "iu", "ie", "üe", "er", "an");
+        var list3_2 = new Array("en", "in", "un", "ün", "ang", "eng", "ing", "ong");
+        var srcPre = "data:image/jpeg;base64,";
+        var const_guideWholeReadingPinyins = {"zh": ["zhi"], "ch": ["chi"], "sh": ["shi"], "r": ["ri"], "z": ["zi"],
+            "c":  ["ci"], "s": ["si"], "y": ["yv", "yi"], "w": ["wu"], "ie": ["ye"],  "ve": ["yve"], "an": ["yvan"],
+            "in": ["yin"], "vn": ["yvn"], "ing": ["ying"]
+        };
+        var totalImageData = {}
+        var totalArchievement = {}
+        var urlParam = {}
+        var code = ''
+
+        function contains(a, obj) {
+            var i = a.length;
+            while (i--) {
+               if (a[i] === obj) {
+                   return true;
+               }
+            }
+            return false;
+        }
+
+        function GetUrlParameter() {
+            var url = location.href; 
+            var paraString = url.substring(url.indexOf("?")+1,url.length).split("&");
+            console.log(paraString);
+            var paraObj = {};
+            for (var i = 0; j = paraString[i]; i++) { 
+                paraObj[j.substring(0,j.indexOf("=")).toLowerCase()] = j.substring(j.indexOf("=")+1,j.length); 
+            }
+            console.log(paraObj)
+            return paraObj
+        }
+
+        function ConventPinyinvtoü(pinyin) {
+            return pinyin.replace('v', 'ü');
+        }
+
+        function ConventPinyinütov(pinyin) {
+            return pinyin.replace('ü', 'v');
+        }
+
+        function formatSeconds(value) { 
+            var theTime = parseInt(value);// 秒 
+            var theTime1 = 0;// 分 
+            var theTime2 = 0;// 小时
+            if(theTime > 60) { 
+                theTime1 = parseInt(theTime/60); 
+                theTime = parseInt(theTime%60);
+                if(theTime1 > 60) { 
+                    theTime2 = parseInt(theTime1/60); 
+                    theTime1 = parseInt(theTime1%60); 
+                } 
+            } 
+            var result = ""+parseInt(theTime)+"秒"; 
+            if(theTime1 > 0) { 
+                result = ""+parseInt(theTime1)+"分"+result; 
+            } 
+            if(theTime2 > 0) { 
+                result = ""+parseInt(theTime2)+"小时"+result; 
+            } 
+            return result; 
+        } 
+
+        function JoinPinyinList(pinyin, pylist) {
+          var pinyinlist = "";
+            for (var item in pylist) {
+              if (pylist[item] == pinyin) {
+                  pinyinlist += '<span class="current-pinyin">' + pylist[item] + '</span>';
+              } else {
+                  pinyinlist += '<span>' + pylist[item] + '</span>';
+              }
+            }
+            return pinyinlist;
+        }
+
+        function InitPinyinList(pinyin) {
+          if (contains(list1, pinyin)) {
+            $('div.zimubiaowraper').append('<div class="zimubiao">' + JoinPinyinList(pinyin, list1) + '</div>');
+          } else if (contains(list2_1, pinyin) || contains(list2_2, pinyin)) {
+              $('div.zimubiaowraper').append('<div class="zimubiao">' + JoinPinyinList(pinyin, list2_1) + '</div>');
+              $('div.zimubiaowraper').append('<div class="zimubiao">' + JoinPinyinList(pinyin, list2_2) + '</div>');
+          } else if (contains(list3_1, pinyin) || contains(list3_2, pinyin)) {
+              $('div.zimubiaowraper').append('<div class="zimubiao">' + JoinPinyinList(pinyin, list3_1) + '</div>');
+              $('div.zimubiaowraper').append('<div class="zimubiao">' + JoinPinyinList(pinyin, list3_2) + '</div>');
+          } else {
+            console.log("pinyin doesn\'t exist.");
+          }
+        }
+
+        function RefreshPageData(pinyin) {
+            $('label.pinyin').text(pinyin);
+            try {
+                console.log('pinyin:' + pinyin)
+                var pinyindata = totalArchievement["detail"][ConventPinyinütov(pinyin)];
+                $('label.each-total-time').text(formatSeconds(pinyindata["totaltime"]));
+                $('label.last-time').text(formatSeconds(pinyindata["time"]));
+                $('label.tipcount').text(pinyindata["game1"]["tipcount"]);
+                $('label.findpytime').text(formatSeconds(pinyindata["game1"]["time"]));
+                $('label.findpynum').text(pinyindata["game1"]["count"]);
+                $('label.writetime').text(formatSeconds(pinyindata["game2"]["time"]));
+                $('label.writenum').text(pinyindata["game2"]["count"]);
+                $('label.magictime').text(formatSeconds(pinyindata["game3"]["time"]));
+                $('label.tonenum').text(pinyindata["game3"]["count"]);
+                $('label.pytime').text(formatSeconds(pinyindata["game4"]["time"]));
+                $('label.pynum').text(pinyindata["game4"]["count"]);
+                if (pinyindata["game4"]["totalcount"] != 0) {
+                    $('label.rightrates').text(parseInt((pinyindata["game4"]["count"] / pinyindata["game4"]["totalcount"]) * 100) + '%');
+                }
+            } catch (e) {
+                console.log(e.name + ": " + e.message);
+            }
+            RemoveOldImage();
+            RefreshImage(pinyin);
+        }
+
+        function RefreshImage(pinyin) {
+            if (pinyin in totalImageData) {
+                RefreshImageList(pinyin);
+                console.log("has pinyin");
+            } else {
+                GetImageFromServer(pinyin);
+                console.log("not has pinyin");
+            }
+        }
+
+        function RemoveOldImage() {
+            for (var i = 1; i <= 3; ++i) {
+                var thisImgTag = 'img' + i;
+                $('.'+thisImgTag+' img').remove();
+                $('#'+thisImgTag).remove();
+            }
+        }
+
+        function RefreshImageList(pinyin) {
+            try {
+                var srcDataList = totalImageData[pinyin];
+                for (var index in srcDataList) {
+                    var thisImgTag = 'img' + (parseInt(index) + 1);
+                    $('.pinyin-image > ul > li > .'+thisImgTag).append('<a href="#' + thisImgTag + '">\
+                                                                            <img src="' + srcPre + srcDataList[index] + '" />\
+                                                                        </a>');
+                    $('body').append('<div id="' + thisImgTag + '" style="display:none;"><div class="img-bound"><img src="' + srcPre + srcDataList[index] + '" /></div></div>');
+                }
+                $('div.small_pic a').fancyZoom({scaleImg: true, closeOnClick: true});
+            } catch (e) {
+                console.log(pinyin + ' doesn\'t has image.');
+            }
+        }
+
+        function GetLevelCount(pinyin) {
+            var pinyin = ConventPinyinvtoü(pinyin);
+            var levelcount = 0;
+            if (contains(list1, pinyin)) {
+                levelcount = list1.indexOf(pinyin);
+            } else if (contains(list2_1, pinyin)) {
+                levelcount = list1.length + list2_1.indexOf(pinyin);
+            } else if (contains(list2_2, pinyin)) {
+                levelcount = list1.length + list2_1.length + list2_2.indexOf(pinyin);
+            } else if (contains(list3_1, pinyin)) {
+                levelcount = list1.length + list2_1.length + list2_2.length + list3_1.indexOf(pinyin);
+            } else if (contains(list3_2, pinyin)) {
+                levelcount = list1.length + list2_1.length + list2_2.length + list3_1.length + list3_2.indexOf(pinyin);
+            }else {
+              console.log("pinyin doesn\'t exist." + pinyin);
+              levelcount = 0;
+            }
+            return levelcount;
+        }
+
+        function GetWholeReadingPinyinCount(levelcount, pinyin, model) {
+            var wholeReadingPinyinCount = 0;
+            if (model != 4 && levelcount > 1) {
+                --levelcount;
+            }
+            for (var item in const_guideWholeReadingPinyins) {
+                if (GetLevelCount(item) <= levelcount) {
+                    wholeReadingPinyinCount += const_guideWholeReadingPinyins[item].length;
+                }
+            }
+            if ("an" == pinyin && 4 == model) {
+                --wholeReadingPinyinCount;
+            }
+            return wholeReadingPinyinCount;
+        }
+
+        function InitTotalDisplayPage() {
+            var pinyin = totalArchievement["total"]["pinyin"];
+            var model = totalArchievement["total"]["model"];
+            var time = formatSeconds(totalArchievement["total"]["time"]);
+            var levelcount = GetLevelCount(pinyin);
+            var sfinalscount = levelcount > 6 ? 6 : levelcount;
+            var initialcount = (6 == sfinalscount) ? (levelcount > 29 ? 23 : (levelcount - 6)) : 0;
+            var cfinalscount = (0 == initialcount) ? 0 : (23 == initialcount ? (levelcount - 29) : 0);
+            var wholeReadingPinyinCount = GetWholeReadingPinyinCount(levelcount, pinyin, model);
+
+            if (totalArchievement["total"]["time"] > 10) {
+                $('title').text('宝贝真棒，又学习了' + time);
+            }
+            $('label.pinyin-count').text(levelcount);
+            $('label.totaltime').text(time);
+            $('label.sfinals-count').text(sfinalscount);
+            $('label.initial-count').text(initialcount);
+            $('label.cfinals-count').text(cfinalscount);
+            $('label.syllable-count').text(wholeReadingPinyinCount);
+            $('.sfinals-chart').height((sfinalscount / 6) * 56);
+            $('.initial-chart').height((initialcount / 23) * 215);
+            $('.cfinals-chart').height((cfinalscount / 18) * 167);
+            $('.syllable-chart').height((wholeReadingPinyinCount / 16) * 122);
+        }
+
+        function ShowDetailsPage(pinyin) {
+            $('.total').hide();
+            $('.details').show();
+            InitPinyinList(pinyin);
+            RefreshPageData(pinyin);
+        }
+
+        function GetArchievementFromServer() {
+            var data = {
+                "type":"archievement",
+                "kidId":code,
+            };
+            SendRequest(data);
+        }
+
+        function GetImageFromServer(pinyin) {
+            var data = {
+                "type":"imagedata",
+                "kidId":code,
+                "pinyin":pinyin
+            }
+            SendRequest(data);
+        }
+
+        function ShowLoading() {
+            $('.spinner-wrapper').show();
+        }
+
+        function HideLoading() {
+            $('.spinner-wrapper').hide();
+        }
+
+        function SendRequest(data) {
+            var url = "http://upload.wanquwoo.com:8000/cgi/v1/pinyin/kidsdata";
+            ShowLoading();
+            console.log("Loading begin....");
+            $.getJSON(url, data)
+                .done(function(retvalue, status){
+                    if (status == 'success') {
+                        console.log("success");
+                        HideLoading();
+                        try {
+                            if (retvalue['type'] == 'archievement') {
+                                totalArchievement = retvalue['data'];
+                                InitTotalDisplayPage();
+                                InitButtonClickEvent();
+                                if ("pinyin" in urlParam) {
+                                    LocationToPinyinPage(urlParam["pinyin"]);
+                                }
+                            } else if (retvalue['type'] == 'imagedata') {
+                                var pinyin = retvalue['pinyin']
+                                totalImageData[pinyin] = retvalue['data']
+                                RefreshImageList(pinyin);
+                            }
+                        } catch (e) {
+                            console.log(e.name + ": " + e.message);
+                            HideLoading();
+                            alert("获取数据错误，请刷新重试");
+                        }
+                    } else {
+                        console.log("getJson error.");
+                        HideLoading();
+                        alert("获取数据错误，请刷新重试");
+                    }
+                })
+                .fail(function(d, textStatus, error) {
+                    console.log("getJSON failed, status: " + textStatus + ", error: "+error);
+                    HideLoading();
+                    alert("参数错误，请刷新重试.");
+                    $('.details').hide();
+                    $('.total').show();
+                })
+                .always(function() {
+
+                });
+        }
+
+        function InitButtonClickEvent() {
+            $('div.sfinals-chart-wraper, div.sfinals-chart').on('click', function(event, pinyin){
+                pinyin == undefined? ShowDetailsPage('a') : ShowDetailsPage(pinyin);
+            });
+            $('div.initial-chart-wraper, div.initial-chart').on('click', function(event, pinyin){
+                pinyin == undefined? ShowDetailsPage('b') : ShowDetailsPage(pinyin);
+            });
+            $('div.cfinals-chart-wraper, div.cfinals-chart').on('click', function(event, pinyin){
+                pinyin == undefined? ShowDetailsPage('ai') : ShowDetailsPage(pinyin);
+            });
+            $('#back-button').on('click', function(){
+                $('div.zimubiaowraper .zimubiao').remove();
+                $('.details').hide();
+                $('.total').show();
+            });
+            $('.zimubiaowraper').on('click', 'span',function(){
+                console.log($(this).text());
+                $('.zimubiaowraper .zimubiao span.current-pinyin').removeClass('current-pinyin');
+                $(this).addClass('current-pinyin');
+                RefreshPageData($(this).text());
+            });
+            console.log("button click event.");
+        }
+
+        function LocationToPinyinPage(pinyin) {
+            var pinyin = ConventPinyinvtoü(pinyin);
+            if (contains(list1, pinyin)) {
+                $('div.sfinals-chart-wraper').trigger("click", pinyin);
+            } else if (contains(list2_1, pinyin) || contains(list2_2, pinyin)) {
+                $('div.initial-chart-wraper').trigger("click", pinyin);
+            } else if (contains(list3_1, pinyin) || contains(list3_2, pinyin)) {
+                $('div.cfinals-chart-wraper').trigger("click", pinyin);
+            } else {
+                console.log("pinyin doesn\'t exist.");
+            }
+        }
+
+        $(function(){
+            try {
+                urlParam = GetUrlParameter();
+                code = urlParam["code"];
+                if ("pinyin" in urlParam) {
+                    $('.total').hide();
+                }
+                GetArchievementFromServer();
+            } catch (e) {
+                alert("参数错误，请刷新重试.");
+                $('.total').show();
+            }
+        });
+    </script>
+    <style type="text/css">
+        * {margin:0;padding:0;-webkit-tap-highlight-color:rgba(0,0,0,0);}
+        body {width:100%;font-family:STYuanti-SC-Regular,Tahoma,Verdana,Arial,sans-serif;}
+        .drag {position: absolute; width: 100%; height: 100%; background: black; opacity:0; overflow: hidden; display: none; }      
+        .img-bound { background-image: url("http://upload.wanquwoo.com:8989/pinyinshared/bound.png"); background-size: 100% 100%; background-repeat: no-repeat; padding: 108px 26px 37px;}
+        /*loading*/ 
+        .spinner-wrapper {position:absolute;top:0;right:0;bottom:0;left:0;border:1px solid red;display:none;}
+        .spinner {position:absolute;width:400px;top:45%;left:30%;text-align:center;}
+        .spinner > div {width:80px;height:80px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;/* Prevent first frame from flickering when animation starts */          -webkit-animation-fill-mode:both;animation-fill-mode:both;}
+        .spinner .bounce1 {-webkit-animation-delay:-0.32s;animation-delay:-0.32s;}
+        .spinner .bounce2 {-webkit-animation-delay:-0.16s;animation-delay:-0.16s;}
+        @-webkit-keyframes bouncedelay {0%,80%,100% {-webkit-transform:scale(0.0)}
+        40% {-webkit-transform:scale(1.0)}
+        }
+        @keyframes bouncedelay {0%,80%,100% {transform:scale(0.0);-webkit-transform:scale(0.0);}
+        40% {transform:scale(1.0);-webkit-transform:scale(1.0);}
+        }
+        /*loading结束*/
+        .bg {width:980px;height:1600px;margin:0 auto;background-image:url("http://upload.wanquwoo.com:8989/pinyinshared/background.png");background-size:100%;background-position:50%,50%;background-repeat:no-repeat;position:relative;}
+        .content-wraper {position:absolute;top:0;bottom:0;left:0;right:0;margin:0 40px;}
+        .zimubiaowraper {margin-bottom:30px;}
+        .tips span {border-radius:25px;padding:0 25px;}
+        .kindofpinyin {margin-top:50px;}
+        .tips-danyunmu {font-size:50px;color:#a07752;background-color:#F0D16A;width:auto;}
+        .tips-xuexijindu {font-size:40px;color:#a07752;background-color:#F0D16A;width:auto;margin:50px 0 0 0;}
+        .tips-zimutujianle {font-size:35px;color:#fff;background-color:#5FCCB0;width:auto;}
+        .tips-nengliangjiayouzhan {font-size:35px;color:#fff;background-color:#82D1C4;width:auto;}
+        .tips-youyimofa {font-size:35px;color:#fff;background-color:#82C1D1;width:auto;}
+        .tips-zhaopingyou {font-size:35px;color:#fff;background-color:#F0D16A;width:auto;}
+        .content {font-size:35px;margin:0 0 30px 30px;}
+        label {color:#82C1D1;}
+        .zimubiao {width:auto;height:150px;background-image:url("http://upload.wanquwoo.com:8989/pinyinshared/zimubiao.png");background-size:100%,150px;background-position:50%,50%;background-repeat:no-repeat;line-height:140px;}
+        .zimubiao > span {display:inline-block;width:auto;padding:0 19px;max-width:72px;font-size:50px;}
+        .zimubiao > span.current-pinyin {color:#82C1D1;}
+        .pinyin-image {width:600px;height:150px;margin:0 auto;}
+        .pinyin-image > ul {list-style:none;}
+        .pinyin-image > ul > li {display:inline-block;width:125px;height:125px;margin-right:60px;}
+        .pinyin-image > ul > li .small_pic {width:125px;height:125px;background-image:url("http://upload.wanquwoo.com:8989/pinyinshared/bs.png");background-size:125px,125px;background-position:50%,50%;background-repeat:no-repeat;}
+        .pinyin-image > ul > li img {width:125px;height:125px;}
+        .button-wrapper {position: relative;}
+        #back-button {position:absolute;right:100px;width:100px;height:100px;border:none;outline:none;border-radius: 50%;background-image: url("http://upload.wanquwoo.com:8989/pinyinshared/backbutton.png"); background-size: 100%; background-repeat: no-repeat;background-position: 50%;}
+        #back-button:active { transform:scale(1.2); }
+        .xuexijindu {margin-top:150px;}
+        .tips-total {font-size:50px;background-color:#F0D16A;width:auto;}
+        .introduce {width:100%;height:300px;margin:100px 0;background-image:url("http://upload.wanquwoo.com:8989/pinyinshared/bs.png");background-size:100%;background-position:50%,50%;border-radius:30px;}
+        .introduce-wraper {margin:50px 50px;padding:50px 0;}
+        .introduce-wraper span {font-size:40px;}
+        .bar-chart {width:100%;height:400px;margin:100px auto;background-color:#ffffff;border-radius:30px;}
+        .bar-chart-wraper {position:relative;width:800px;height:360px;margin:0 auto;background-image:url("http://upload.wanquwoo.com:8989/pinyinshared/tongjibiao.png");background-size:700px,360px;background-position:50%,50%;background-repeat:no-repeat;}
+        .bar-chart-wraper span {font-size:30px;}
+        .sfinals-chart-wraper {position:absolute;width:75px;height:56px;bottom:32px;left:127px;}
+        .initial-chart-wraper {position:absolute;width:75px;height:215px;bottom:32px;left:274px;}
+        .cfinals-chart-wraper {position:absolute;width:75px;height:167px;bottom:32px;left:422px;}
+        .syllable-chart-wraper {position:absolute;width:75px;height:122px;bottom:32px;left:568px;}
+        .sfinals-chart {position:absolute;width:75px;height:0;bottom:32px;left:127px;background-color:#82D19E;}
+        .initial-chart {position:absolute;width:75px;height:0;bottom:32px;left:274px;background-color:#82D1C4;}
+        .cfinals-chart {position:absolute;width:75px;height:0;bottom:32px;left:422px;background-color:#82C1D1;}
+        .syllable-chart {position:absolute;width:75px;height:0;bottom:32px;left:568px;background-color:#82A1D1;}
+        .sfinals-title {position:absolute;width:auto;height:30px;bottom:-10px;left:120px;color:#82D19E;}
+        .initial-title {position:absolute;width:auto;height:30px;bottom:-10px;left:285px;color:#82D1C4;}
+        .cfinals-title {position:absolute;width:auto;height:30px;bottom:-10px;left:415px;color:#82C1D1;}
+        .syllable-title {position:absolute;width:auto;height:30px;bottom:-10px;left:530px;color:#82A1D1;}
+        .star1 {position:absolute;top:0px;right:10px;}
+        .star1 img {}
+        .star2 {position:absolute;bottom:0px;left:10px;}
+        .star2 img {transform:rotateY(180deg);-ms-transform:rotateY(180deg);-webkit-transform:rotateY(180deg);-o-transform:rotateY(180deg);-moz-transform:rotateY(180deg);}
+        .total, .details {display:none;}
+    </style>
+</head>
+<body>
+    <img id="logo" src="http://upload.wanquwoo.com:8989/pinyinshared/logo.png" style="position:absolute;top:0;left:0; width:0px; height:0px; z-index:-1;"/>
+    <div class="bg">
+        <div class="content-wraper total">
+            <div class="tips xuexijindu">
+                <span class="tips-total">总学习进度</span>
+            </div>
+            <div class="introduce">
+                <div class="introduce-wraper">
+                    <span>您的宝贝累计学习了<label class="totaltime">0秒</label></span><br/>
+                    <span>共解救出了<label class="pinyin-count">0</label>个字母精灵，其中有<label class="sfinals-count">0</label>个单韵母，<label class="initial-count">0</label>个声母，<label class="cfinals-count">0</label>个复韵母，<label class="syllable-count">0</label>个整体认读音节，做得非常好！</span>
+                </div>
+            </div>
+            <div class="bar-chart">
+                <div class="bar-chart-wraper">
+                    <div class="sfinals-chart-wraper"></div>
+                    <div class="initial-chart-wraper"></div>
+                    <div class="cfinals-chart-wraper"></div>
+
+                    <div class="sfinals-chart"></div>
+                    <div class="initial-chart"></div>
+                    <div class="cfinals-chart"></div>
+                    <div class="syllable-chart"></div>
+
+                    <div class="sfinals-title"><span>单韵母</span></div>
+                    <div class="initial-title"><span>声母</span></div>
+                    <div class="cfinals-title"><span>复韵母</span></div>
+                    <div class="syllable-title"><span>整体认读音节</span></div>
+                </div>
+            </div>
+            <div class="star1">
+                <img src="zhuangshi.png"/>
+            </div>
+            <div class="star2">
+                <img src="zhuangshi.png"/>
+            </div>
+        </div>
+    
+        <div class="content-wraper details">
+            <div class="tips kindofpinyin">
+              <span class="tips-danyunmu">单韵母</span>
+            </div>
+            <div class="zimubiaowraper">
+              <!-- <div class="zimubiao">
+                <span>a</span>
+                <span>o</span>
+                <span class="current-pinyin">e</span>
+                <span>i</span>
+                <span>u</span>
+                <span>ü</span>
+              </div> -->
+            </div>
+            <div class="tips">
+              <span class="tips-xuexijindu">字母 <label class="pinyin">a</label> 的学习进度</span>
+            </div>
+            <div class="content">
+              <span>您的宝贝累计学习字母 <label class="each-total-time">2分11秒</label></span><br>
+              <span>最近一次的学习时长为 <label class="last-time">2分11秒</label></span><br>
+              <span>在四个游戏中的完成情况如下</span>
+            </div>
+            <div class="tips">
+              <span class="tips-zimutujianle">字母不见了</span>
+            </div>
+            <div class="content">
+              <span>在提示<label class="tipcount">0</label>次的情况下，用<label class="findpytime">0秒</label>找出了<label class="findpynum">0</label>个藏起来的字母<label class="pinyin">a</label></span>
+            </div>
+            <div class="tips">
+              <span class="tips-nengliangjiayouzhan">能量加油站</span>
+            </div>
+            <div class="content">
+              <span>用<label class="writetime">0秒</label>写了<label class="writenum">0</label>个<label class="pinyin">a</label>, 一起看看宝贝最近三次的笔记</span>
+            </div>
+            <div class="pinyin-image">
+              <ul>
+                <li>
+                  <div class="small_pic img1">
+                      <a href="#img1">
+                          <!-- <img src="e-1.jpg" /> -->
+                      </a>
+                  </div>
+                </li>
+                <li>
+                  <div class="small_pic img2">
+                      <a href="#img2">
+                          <!-- <img src="e-2.jpg" /> -->
+                      </a>
+                  </div>
+                </li>
+                <li>
+                  <div class="small_pic img3">
+                      <a href="#img3">
+                          <!-- <img src="e-3.jpg" /> -->
+                      </a>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="tips">
+              <span class="tips-youyimofa">友谊魔法</span>
+            </div>
+            <div class="content">
+              <span>学习音调友谊魔法<label class="magictime">0秒</label>，共拼出了<label class="tonenum">0</label>个音调组合</span>
+            </div>
+            <div class="tips">
+              <span class="tips-zhaopingyou">找朋友</span>
+            </div>
+            <div class="content">
+              <span>用<label class="pytime">0秒</label>拼对了<label class="pynum">0</label>个正确拼音组合，正确率为<label class="rightrates">0%</label></span>
+            </div>
+            <div class="button-wapper">
+                <button id="back-button"/>
+            </div>
+      </div>
+      <div class="spinner-wrapper">
+          <div class="spinner">
+            <div class="bounce1"></div>
+            <div class="bounce2"></div>
+            <div class="bounce3"></div>
+          </div>
+      </div>
+  </div>
+</body>
+</html>
